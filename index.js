@@ -1,12 +1,12 @@
 console.log("🚀 Starting my-ngrok All-in-One Engine...");
 
-// 1. تشغيل التطبيق المحلي
+// 1. Start the Local Dummy App
 require('./dummy-app.js');
 
-// 2. تشغيل الخادم العام
+// 2. Start the Public Server
 require('./server.js');
 
-// 3. تشغيل العميل للاتصال بالنفق
+// 3. Start the Client to connect to the tunnel
 setTimeout(() => {
     require('./client.js');
-}, 1500); // تأخير بسيط لضمان عمل الخادم أولاً
+}, 1500); // Slight delay to ensure the server starts first

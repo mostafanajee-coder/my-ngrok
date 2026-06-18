@@ -3,19 +3,19 @@ const net = require('net');
 const HTTP_PORT = 8085;
 const TUNNEL_PORT = 8086;
 
-const tunnelPool = []; // بركة الاتصالات الخاملة
-const waitingClients = []; // العملاء (المتصفحات) الذين ينتظرون اتصالاً متاحاً
+const tunnelPool = []; // Pool of idle tunnel sockets
+const waitingClients = []; // Public requests waiting for an available tunnel connection
 
-// 1. خادم النفق (يستقبل اتصالات العميل لتكوين بركة الاتصالات)
+// 1. Tunnel Server (Receives connections from the local client to build the pool)
 const tunnelServer = net.createServer((socket) => {
     socket.setKeepAlive(true, 10000);
     
     if (waitingClients.length > 0) {
-        // إذا كان هناك متصفح ينتظر، قم بربطه فوراً
+        // If a public client is waiting, connect immediately
         const publicSocket = waitingClients.shift();
         pipeSockets(publicSocket, socket);
     } else {
-        // وإلا، ضعه في بركة الاتصالات
+        // Otherwise, add to the idle pool
         tunnelPool.push(socket);
         
         socket.on('close', () => {
@@ -29,16 +29,16 @@ const tunnelServer = net.createServer((socket) => {
     }
 });
 
-// 2. الخادم العام (يستقبل طلبات المتصفحات)
+// 2. Public Server (Receives requests from public users/browsers)
 const publicServer = net.createServer((publicSocket) => {
     publicSocket.setKeepAlive(true, 10000);
     
     if (tunnelPool.length > 0) {
-        // خذ اتصالاً جاهزاً من البركة واربطهما
+        // Grab an idle connection from the pool and pipe them
         const tunnelSocket = tunnelPool.shift();
         pipeSockets(publicSocket, tunnelSocket);
     } else {
-        // إذا نفدت الاتصالات، ضعه في قائمة الانتظار
+        // If no connections are available, put the user in the waiting list
         waitingClients.push(publicSocket);
         
         publicSocket.on('close', () => {
@@ -52,7 +52,7 @@ const publicServer = net.createServer((publicSocket) => {
     }
 });
 
-// دالة الربط المباشر (Raw Piping) للسرعة الخارقة
+// Direct Pipe Function (Raw Piping for High Performance)
 function pipeSockets(publicSocket, tunnelSocket) {
     publicSocket.pipe(tunnelSocket);
     tunnelSocket.pipe(publicSocket);

@@ -3,34 +3,34 @@ import time
 import sys
 import os
 
-print("🚀 جاري تشغيل بيئة النفق (my-ngrok) بالكامل...\n")
+print("🚀 Starting my-ngrok environment...\n")
 
-# مسار المجلد الحالي
+# Current directory path
 cwd = os.path.dirname(os.path.abspath(__file__))
 
-# تشغيل التطبيق المحلي
-print("📦 بدء تشغيل التطبيق المحلي (Dummy App) على المنفذ 3000...")
+# Start the Local Dummy App
+print("📦 Starting Dummy App on port 3055...")
 dummy_process = subprocess.Popen(["node", "dummy-app.js"], cwd=cwd, stdout=sys.stdout, stderr=sys.stderr)
-time.sleep(2) # انتظار قليل حتى يعمل التطبيق
+time.sleep(2) # Wait slightly
 
-# تشغيل الخادم العام
-print("🌐 بدء تشغيل الخادم العام (Server) على المنفذ 8080...")
+# Start the Public Server
+print("🌐 Starting Public Server on TCP 8085...")
 server_process = subprocess.Popen(["node", "server.js"], cwd=cwd, stdout=sys.stdout, stderr=sys.stderr)
-time.sleep(2) # انتظار قليل حتى يعمل الخادم
+time.sleep(2) # Wait slightly
 
-# تشغيل العميل (النفق)
-print("🚇 بدء تشغيل العميل (Client) لفتح النفق...")
+# Start the Client (Tunnel)
+print("🚇 Starting Client to open the tunnel...")
 client_process = subprocess.Popen(["node", "client.js"], cwd=cwd, stdout=sys.stdout, stderr=sys.stderr)
 
-print("\n✅ تم التشغيل بنجاح! يمكنك الآن زيارة الرابط: http://localhost:8080")
-print("اضغط على (Ctrl+C) لإغلاق كل شيء.")
+print("\n✅ Started successfully! You can now visit: http://localhost:8085")
+print("Press (Ctrl+C) to safely shut down all services.")
 
 try:
-    # إبقاء السكربت قيد التشغيل
+    # Keep the script running
     dummy_process.wait()
 except KeyboardInterrupt:
-    print("\n🛑 جاري إغلاق جميع الخدمات...")
+    print("\n🛑 Shutting down all services...")
     dummy_process.terminate()
     server_process.terminate()
     client_process.terminate()
-    print("تم الإغلاق. وداعاً!")
+    print("Goodbye!")

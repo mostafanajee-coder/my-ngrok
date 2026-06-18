@@ -3,7 +3,7 @@ const net = require('net');
 const SERVER_HOST = '127.0.0.1';
 const SERVER_PORT = 8086;
 const LOCAL_APP_PORT = 3055;
-const POOL_SIZE = 15; // عدد الاتصالات الجاهزة دائماً
+const POOL_SIZE = 15; // Number of persistent idle connections to maintain
 
 let activeConnections = 0;
 
@@ -11,28 +11,28 @@ function createTunnelConnection() {
     const tunnelSocket = new net.Socket();
 
     tunnelSocket.connect(SERVER_PORT, SERVER_HOST, () => {
-        // الاتصال جاهز في البركة
+        // Connection is ready and in the pool
     });
 
     let localSocket = null;
     let isUsed = false;
 
-    // مجرد وصول أي بيانات، يعني أن هذا الاتصال تم استخدامه من قبل مستخدم عام
+    // Upon receiving any data, this connection becomes ACTIVE (a public user is requesting something)
     tunnelSocket.once('data', (initialData) => {
         isUsed = true;
         activeConnections++;
         console.log(`[Client] Connection activated. Active users: ${activeConnections}`);
         
-        // تعويض البركة باتصال جديد فوراً لتبقى دائماً جاهزة (POOL_SIZE)
+        // Immediately replenish the pool to ensure it always has POOL_SIZE connections
         createTunnelConnection();
 
-        // الاتصال بتطبيقك المحلي لتوصيل البيانات
+        // Connect to the local application to forward the data
         localSocket = new net.Socket();
         localSocket.connect(LOCAL_APP_PORT, '127.0.0.1', () => {
-            // إرسال الحزمة الأولى التي وصلتنا
+            // Send the first chunk we received
             localSocket.write(initialData);
             
-            // ربط القنوات (Piping) للتدفق المباشر للملفات الثقيلة بدون ذاكرة
+            // Pipe the streams for high performance (Zero-memory overhead)
             tunnelSocket.pipe(localSocket);
             localSocket.pipe(tunnelSocket);
         });
@@ -51,7 +51,7 @@ function createTunnelConnection() {
         tunnelSocket.destroy();
         if (localSocket) localSocket.destroy();
         if (!isUsed) {
-            // إذا انقطع وهو في البركة (لم يُستخدم)، نحاول إعادته
+            // If disconnected while idle in the pool, attempt to reconnect
             setTimeout(createTunnelConnection, 2000);
         }
     };
